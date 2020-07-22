@@ -9,20 +9,19 @@
 
 #pragma once
 
-#include "FirmwarePlugin.h"
+#include "UnitTest.h"
 
-class PX4FirmwarePlugin;
-
-class PX4FirmwarePluginFactory : public FirmwarePluginFactory
+/// This unit test is meant to be used stand-alone to generate images for each mission item editor for review
+class MissionCommandTreeEditorTest : public UnitTest
 {
     Q_OBJECT
-
+    
 public:
-    PX4FirmwarePluginFactory(void);
-
-    QList<QGCMAVLink::FirmwareClass_t>  supportedFirmwareClasses(void) const final;
-    FirmwarePlugin*                     firmwarePluginForAutopilot  (MAV_AUTOPILOT autopilotType, MAV_TYPE vehicleType) final;
+    MissionCommandTreeEditorTest(void);
+    
+private slots:
+    void testEditors(void);
 
 private:
-    PX4FirmwarePlugin*  _pluginInstance;
+    void _testEditorsWorker(QGCMAVLink::FirmwareClass_t firmwareClass, QGCMAVLink::VehicleClass_t vehicleClass);
 };
