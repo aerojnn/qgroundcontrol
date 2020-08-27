@@ -345,6 +345,12 @@ CustomBuild {
     } else {
         RESOURCES += $$PWD/qgcimages.qrc
     }
+    exists($$PWD/custom/InstrumentValueIcons.qrc) {
+        message("Using custom InstrumentValueIcons.qrc")
+        RESOURCES += $$PWD/custom/InstrumentValueIcons.qrc
+    } else {
+        RESOURCES += $$PWD/resources/InstrumentValueIcons/InstrumentValueIcons.qrc
+    }
 } else {
     DEFINES += QGC_APPLICATION_NAME=\"\\\"QGroundControl\\\"\"
     DEFINES += QGC_ORG_NAME=\"\\\"QGroundControl.org\\\"\"
@@ -354,15 +360,6 @@ CustomBuild {
         $$PWD/qgcresources.qrc \
         $$PWD/qgcimages.qrc \
         $$PWD/resources/InstrumentValueIcons/InstrumentValueIcons.qrc \
-}
-
-# On Qt 5.9 android versions there is the following bug: https://bugreports.qt.io/browse/QTBUG-61424
-# This prevents FileDialog from being used. So we have a temp hack workaround for it which just no-ops
-# the FileDialog fallback mechanism on android 5.9 builds.
-equals(QT_MAJOR_VERSION, 5):equals(QT_MINOR_VERSION, 9):AndroidBuild {
-    RESOURCES += $$PWD/HackAndroidFileDialog.qrc
-} else {
-    RESOURCES += $$PWD/HackFileDialog.qrc
 }
 
 #
@@ -404,7 +401,6 @@ INCLUDEPATH += \
     src/Settings \
     src/Terrain \
     src/Vehicle \
-    src/ViewWidgets \
     src/Audio \
     src/comm \
     src/input \
@@ -665,7 +661,6 @@ HEADERS += \
     src/QmlControls/TerrainProfile.h \
     src/QmlControls/ToolStripAction.h \
     src/QmlControls/ToolStripActionList.h \
-    src/QmlControls/VerticalFactValueGrid.h \
     src/QtLocationPlugin/QMLControl/QGCMapEngineManager.h \
     src/Settings/ADSBVehicleManagerSettings.h \
     src/Settings/AppSettings.h \
@@ -695,11 +690,21 @@ HEADERS += \
     src/Vehicle/MAVLinkLogManager.h \
     src/Vehicle/MultiVehicleManager.h \
     src/Vehicle/StateMachine.h \
+    src/Vehicle/SysStatusSensorInfo.h \
     src/Vehicle/TerrainFactGroup.h \
     src/Vehicle/TerrainProtocolHandler.h \
     src/Vehicle/TrajectoryPoints.h \
     src/Vehicle/Vehicle.h \
     src/Vehicle/VehicleObjectAvoidance.h \
+    src/Vehicle/VehicleBatteryFactGroup.h \
+    src/Vehicle/VehicleClockFactGroup.h \
+    src/Vehicle/VehicleDistanceSensorFactGroup.h \
+    src/Vehicle/VehicleEstimatorStatusFactGroup.h \
+    src/Vehicle/VehicleGPSFactGroup.h \
+    src/Vehicle/VehicleSetpointFactGroup.h \
+    src/Vehicle/VehicleTemperatureFactGroup.h \
+    src/Vehicle/VehicleVibrationFactGroup.h \
+    src/Vehicle/VehicleWindFactGroup.h \
     src/VehicleSetup/JoystickConfigController.h \
     src/comm/LinkConfiguration.h \
     src/comm/LinkInterface.h \
@@ -884,7 +889,6 @@ SOURCES += \
     src/QmlControls/TerrainProfile.cc \
     src/QmlControls/ToolStripAction.cc \
     src/QmlControls/ToolStripActionList.cc \
-    src/QmlControls/VerticalFactValueGrid.cc \
     src/QtLocationPlugin/QMLControl/QGCMapEngineManager.cc \
     src/Settings/ADSBVehicleManagerSettings.cc \
     src/Settings/AppSettings.cc \
@@ -914,11 +918,21 @@ SOURCES += \
     src/Vehicle/MAVLinkLogManager.cc \
     src/Vehicle/MultiVehicleManager.cc \
     src/Vehicle/StateMachine.cc \
+    src/Vehicle/SysStatusSensorInfo.cc \
     src/Vehicle/TerrainFactGroup.cc \
     src/Vehicle/TerrainProtocolHandler.cc \
     src/Vehicle/TrajectoryPoints.cc \
     src/Vehicle/Vehicle.cc \
     src/Vehicle/VehicleObjectAvoidance.cc \
+    src/Vehicle/VehicleBatteryFactGroup.cc \
+    src/Vehicle/VehicleClockFactGroup.cc \
+    src/Vehicle/VehicleDistanceSensorFactGroup.cc \
+    src/Vehicle/VehicleEstimatorStatusFactGroup.cc \
+    src/Vehicle/VehicleGPSFactGroup.cc \
+    src/Vehicle/VehicleSetpointFactGroup.cc \
+    src/Vehicle/VehicleTemperatureFactGroup.cc \
+    src/Vehicle/VehicleVibrationFactGroup.cc \
+    src/Vehicle/VehicleWindFactGroup.cc \
     src/VehicleSetup/JoystickConfigController.cc \
     src/comm/LinkConfiguration.cc \
     src/comm/LinkInterface.cc \

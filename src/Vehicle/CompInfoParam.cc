@@ -22,7 +22,8 @@ QGC_LOGGING_CATEGORY(CompInfoParamLog, "CompInfoParamLog")
 
 const char* CompInfoParam::_jsonScopeKey                = "scope";
 const char* CompInfoParam::_jsonParametersKey           = "parameters";
-const char* CompInfoParam::_cachedMetaDataFilePrefix    =   "ParameterFactMetaData";
+const char* CompInfoParam::_cachedMetaDataFilePrefix    = "ParameterFactMetaData";
+const char* CompInfoParam::_parameterIndexTag           = "<#>";
 
 CompInfoParam::CompInfoParam(uint8_t compId, Vehicle* vehicle, QObject* parent)
     : CompInfo(COMP_METADATA_TYPE_PARAMETER, compId, vehicle, parent)
@@ -75,20 +76,58 @@ void CompInfoParam::setJson(const QString& metadataJsonFileName, const QString& 
         }
 
         FactMetaData* newMetaData = FactMetaData::createFromJsonObject(parameterValue.toObject(), emptyDefineMap, this);
-        _nameToMetaDataMap[newMetaData->name()] = newMetaData;
+
+        QRegularExpression      regexNameIncludesRegex("/\\(.+\\)/");
+        QRegularExpressionMatch match = regexNameIncludesRegex.match(newMetaData->name());
+        if (match.hasMatch()) {
+            QString regexParamName = newMetaData->name();
+            regexParamName.replace(QRegularExpression("/(\\(.+\\))/"), "\\1");
+            newMetaData->setName(regexParamName);
+            _regexNameMetaDataList.append(RegexFactMetaDataPair_t(newMetaData->name(), newMetaData));
+        } else {
+            _nameToMetaDataMap[newMetaData->name()] = newMetaData;
+        }
     }
 }
 
 FactMetaData* CompInfoParam::factMetaDataForName(const QString& name, FactMetaData::ValueType_t type)
 {
+    FactMetaData* factMetaData = nullptr;
+
     if (_opaqueParameterMetaData) {
-        return vehicle->firmwarePlugin()->_getMetaDataForFact(_opaqueParameterMetaData, name, type, vehicle->vehicleType());
+        factMetaData = vehicle->firmwarePlugin()->_getMetaDataForFact(_opaqueParameterMetaData, name, type, vehicle->vehicleType());
     } else {
-        if (!_nameToMetaDataMap.contains(name)) {
-            _nameToMetaDataMap[name] = new FactMetaData(type, this);
+        if (_nameToMetaDataMap.contains(name)) {
+            factMetaData = _nameToMetaDataMap[name];
+        } else {
+            for (int i=0; i<_regexNameMetaDataList.count(); i++) {
+                const RegexFactMetaDataPair_t& pair = _regexNameMetaDataList[i];
+                QString regexParamName = pair.first;
+                QRegularExpression regex(regexParamName);
+                QRegularExpressionMatch match = regex.match(name);
+                QStringList captured = match.capturedTexts();
+                if (captured.count() == 2) {
+                    factMetaData = new FactMetaData(*pair.second, this);
+                    factMetaData->setName(name);
+
+                    QString shortDescription = factMetaData->shortDescription();
+                    shortDescription.replace("/1", captured[1]);
+                    factMetaData->setShortDescription(shortDescription);
+                    QString longDescription = factMetaData->shortDescription();
+                    longDescription.replace("/1", captured[1]);
+                    factMetaData->setLongDescription(longDescription);
+                }
+            }
+
+            if (!factMetaData) {
+                factMetaData = new FactMetaData(type, this);
+            }
+            _nameToMetaDataMap[name] = factMetaData;
         }
-        return _nameToMetaDataMap[name];
     }
+
+
+    return factMetaData;
 }
 
 bool CompInfoParam::_isParameterVolatile(const QString& name)

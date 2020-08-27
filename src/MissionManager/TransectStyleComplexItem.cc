@@ -327,7 +327,7 @@ double TransectStyleComplexItem::greatestDistanceTo(const QGeoCoordinate &other)
 void TransectStyleComplexItem::setMissionFlightStatus(MissionController::MissionFlightStatus_t& missionFlightStatus)
 {
     ComplexMissionItem::setMissionFlightStatus(missionFlightStatus);
-    if (!qFuzzyCompare(_vehicleSpeed, missionFlightStatus.vehicleSpeed)) {
+    if (!QGC::fuzzyCompare(_vehicleSpeed, missionFlightStatus.vehicleSpeed)) {
         _vehicleSpeed = missionFlightStatus.vehicleSpeed;
         // Vehicle speed change affects max climb/descent rates calcs for terrain so we need to re-adjust
         _rebuildTransects();
@@ -1018,7 +1018,7 @@ void TransectStyleComplexItem::_buildAndAppendMissionItems(QList<MissionItem*>& 
     bool imagesInTurnaround =       _cameraTriggerInTurnAroundFact.rawValue().toBool();
     bool hasTurnarounds =           _turnAroundDistance() != 0;
     bool addTriggerAtBeginningEnd = !hoverAndCaptureEnabled() && imagesInTurnaround && triggerCamera();
-    bool useConditionGate =         _controllerVehicle->firmwarePlugin()->supportedMissionCommands().contains(MAV_CMD_CONDITION_GATE) &&
+    bool useConditionGate =         _controllerVehicle->firmwarePlugin()->supportedMissionCommands(QGCMAVLink::VehicleClassGeneric).contains(MAV_CMD_CONDITION_GATE) &&
             triggerCamera() &&
             !hoverAndCaptureEnabled();
 

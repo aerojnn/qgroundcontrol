@@ -121,11 +121,11 @@ const  FactMetaData::ValueType_t FactMetaData::_rgKnownValueTypes[] = {
 const char* FactMetaData::_decimalPlacesJsonKey =       "decimalPlaces";
 const char* FactMetaData::_nameJsonKey =                "name";
 const char* FactMetaData::_typeJsonKey =                "type";
-const char* FactMetaData::_shortDescriptionJsonKey =    "shortDescription";
-const char* FactMetaData::_longDescriptionJsonKey =     "longDescription";
+const char* FactMetaData::_shortDescriptionJsonKey =    "shortDesc";
+const char* FactMetaData::_longDescriptionJsonKey =     "longDesc";
 const char* FactMetaData::_unitsJsonKey =               "units";
-const char* FactMetaData::_defaultValueJsonKey =        "defaultValue";
-const char* FactMetaData::_mobileDefaultValueJsonKey =  "mobileDefaultValue";
+const char* FactMetaData::_defaultValueJsonKey =        "default";
+const char* FactMetaData::_mobileDefaultValueJsonKey =  "mobileDefault";
 const char* FactMetaData::_minJsonKey =                 "min";
 const char* FactMetaData::_maxJsonKey =                 "max";
 const char* FactMetaData::_incrementJsonKey =           "increment";
@@ -321,9 +321,9 @@ bool FactMetaData::isInRawMinLimit(const QVariant& variantValue) const
     case valueTypeInt64:
         return _rawMin.value<int64_t>() <= variantValue.value<int64_t>();
     case valueTypeFloat:
-        return _rawMin.value<float>() <= variantValue.value<float>();
+        return qIsNaN(variantValue.toFloat()) || _rawMin.value<float>() <= variantValue.value<float>();
     case valueTypeDouble:
-        return _rawMin.value<double>() <= variantValue.value<double>();
+        return qIsNaN(variantValue.toDouble()) || _rawMin.value<double>() <= variantValue.value<double>();
     default:
         return true;
     }
@@ -351,9 +351,9 @@ bool FactMetaData::isInRawMaxLimit(const QVariant& variantValue) const
     case valueTypeInt64:
         return _rawMax.value<int64_t>() >= variantValue.value<int64_t>();
     case valueTypeFloat:
-        return _rawMax.value<float>() >= variantValue.value<float>();
+        return qIsNaN(variantValue.toFloat()) || _rawMax.value<float>() >= variantValue.value<float>();
     case valueTypeDouble:
-        return _rawMax.value<double>() >= variantValue.value<double>();
+        return qIsNaN(variantValue.toDouble()) || _rawMax.value<double>() >= variantValue.value<double>();
     default:
         return true;
     }
@@ -1294,26 +1294,31 @@ FactMetaData* FactMetaData::createFromJsonObject(const QJsonObject& json, QMap<Q
         metaData->setRawUnits(json[_unitsJsonKey].toString());
     }
 
-    QString defaultValueJsonKey;
+    QString defaultValueJsonKey = _defaultValueJsonKey;
 #ifdef __mobile__
     if (json.contains(_mobileDefaultValueJsonKey)) {
         defaultValueJsonKey = _mobileDefaultValueJsonKey;
     }
 #endif
-    if (defaultValueJsonKey.isEmpty() && json.contains(_defaultValueJsonKey)) {
-        defaultValueJsonKey = _defaultValueJsonKey;
-    }
-    if (!defaultValueJsonKey.isEmpty()) {
-        QVariant typedValue;
-        QString errorString;
-        QVariant initialValue = json[defaultValueJsonKey].toVariant();
-        if (metaData->convertAndValidateRaw(initialValue, true /* convertOnly */, typedValue, errorString)) {
-            metaData->setRawDefaultValue(typedValue);
+
+    if (json.contains(defaultValueJsonKey)) {
+        const QJsonValue jsonValue = json[defaultValueJsonKey];
+
+        if (jsonValue.type() == QJsonValue::Null && (type == valueTypeFloat || type == valueTypeDouble)) {
+            metaData->setRawDefaultValue(type == valueTypeFloat ? std::numeric_limits<float>::quiet_NaN() : std::numeric_limits<double>::quiet_NaN());
         } else {
-            qWarning() << "Invalid default value, name:" << metaData->name()
-                       << " type:" << metaData->type()
-                       << " value:" << initialValue
-                       << " error:" << errorString;
+            QVariant typedValue;
+            QString errorString;
+            QVariant initialValue = jsonValue.toVariant();
+
+            if (metaData->convertAndValidateRaw(initialValue, true /* convertOnly */, typedValue, errorString)) {
+                metaData->setRawDefaultValue(typedValue);
+            } else {
+                qWarning() << "Invalid default value, name:" << metaData->name()
+                           << " type:" << metaData->type()
+                           << " value:" << initialValue
+                           << " error:" << errorString;
+            }
         }
     }
 
@@ -1450,13 +1455,13 @@ QMap<QString, FactMetaData*> FactMetaData::createMapFromJsonArray(const QJsonArr
 QVariant FactMetaData::cookedMax(void) const
 {
     // We have to be careful with cooked min/max. Running the raw values through the translator could flip min and max.
-    return qMax(_rawTranslator(_rawMax), _rawTranslator(_rawMin));
+    return qMax(_rawTranslator(_rawMax).toDouble(), _rawTranslator(_rawMin).toDouble());
 }
 
 QVariant FactMetaData::cookedMin(void) const
 {
     // We have to be careful with cooked min/max. Running the raw values through the translator could flip min and max.
-    return qMin(_rawTranslator(_rawMax), _rawTranslator(_rawMin));
+    return qMin(_rawTranslator(_rawMax).toDouble(), _rawTranslator(_rawMin).toDouble());
 }
 
 void FactMetaData::setVolatileValue(bool bValue)
